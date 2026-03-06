@@ -2,143 +2,217 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>国試回数指定クイズ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>国試回数指定クイズ</title>
   <style>
-    :root { --primary-color: #28a745; --secondary-color: #007bff; --bg-color: #f8f9fa; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background-color: var(--bg-color); color: #333; line-height: 1.6; }
-    
-    /* ヘッダー固定 */
-    .header { background: var(--primary-color); color: white; padding: 1rem; text-align: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .header-title { font-size: 0.9rem; opacity: 0.9; margin-bottom: 2px; }
-    .header-progress { font-size: 1.2rem; font-weight: bold; }
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 420px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .header-info {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    #questionText {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+    .option {
+      width: 100%;
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+      background: #28a745; /* デフォルトは緑 */
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 1rem;
+    }
+    /* 正解＝赤 */
+    .correct { background: #dc3545 !important; }
+    /* 不正解＝青 */
+    .wrong { background: #0275d8 !important; }
 
-    .container { padding: 1rem; max-width: 600px; margin: auto; }
-    
-    /* クイズカード */
-    .quiz-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 1rem; }
-    .question-text { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; white-space: pre-wrap; }
-    
-    /* 選択肢ボタン */
-    .option-btn { display: block; width: 100%; padding: 1rem; margin: 0.8rem 0; border: 2px solid #e9ecef; border-radius: 10px; background: #fff; text-align: left; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
-    .option-btn:active { transform: scale(0.98); }
-    .option-btn:disabled { cursor: default; }
-    
-    /* 正誤の色 */
-    .correct { background-color: #d4edda !important; border-color: #28a745 !important; color: #155724; font-weight: bold; }
-    .wrong { background-color: #f8d7da !important; border-color: #dc3545 !important; color: #721c24; }
+    #nextBtn {
+      width: 100%;
+      padding: 1rem;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      display: none;
+      cursor: pointer;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    #judgeText {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+    .correctText { color: #dc3545; }
+    .wrongText { color: #0275d8; }
 
-    /* 解説エリア */
-    .explanation { display: none; margin-top: 1.5rem; padding: 1.2rem; background: #fff3cd; border-left: 5px solid #ffc107; border-radius: 4px; font-size: 0.95rem; }
-    
-    /* ナビゲーション */
-    .nav-btns { display: flex; gap: 10px; margin-top: 1rem; }
-    .btn { flex: 1; padding: 1rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
-    .btn-next { background: var(--secondary-color); color: white; display: none; }
-    .btn-home { background: #6c757d; color: white; }
+    #explanation {
+      display: none;
+      background: #eee;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .lightgray-btn {
+      background: #dcdcdc;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      padding: 1rem;
+      width: 100%;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div id="quiz-info" class="header-title">読み込み中...</div>
-  <div id="progress" class="header-progress">0 / 0</div>
+<div class="container" id="quizScreen">
+  <div class="header-info" id="quizInfo"></div>
+  <p id="progress" style="text-align:center; font-weight:bold;"></p>
+  <h2 id="questionText"></h2>
+
+  <div id="options"></div>
+  <div id="judgeText" style="display:none;"></div>
+  <div id="explanation"></div>
+
+  <button id="nextBtn" onclick="nextQuestion()">次の問題へ</button>
 </div>
 
-<div class="container">
-  <div class="quiz-card">
-    <div id="question-text" class="question-text"></div>
-    <div id="options-container"></div>
-    <div id="explanation-area" class="explanation"></div>
-  </div>
-  
-  <div class="nav-btns">
-    <button class="btn btn-home" onclick="if(confirm('中断しますか？')) location.href='mode.html'">終了</button>
-    <button id="next-btn" class="btn btn-next" onclick="nextQuestion()">次の問題へ</button>
-  </div>
+<div class="container" id="resultScreen" style="display:none;">
+  <h2 style="text-align:center;">結果</h2>
+  <p id="scoreText" style="text-align:center; font-size:1.1rem;"></p>
+  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">回数指定に戻る</button>
+  <button class="lightgray-btn" onclick="location.href='mode.html'">トップに戻る</button>
 </div>
 
 <script>
-let filteredQuestions = [];
-let currentIndex = 0;
+  let questions = [];
+  let index = 0;
+  let correctCount = 0;
 
-const targetKaisu = localStorage.getItem("targetKaisu");
-const targetSubject = localStorage.getItem("targetSubject");
+  const targetKaisu = localStorage.getItem("targetKaisu");
+  const targetSubject = localStorage.getItem("targetSubject");
 
-document.getElementById("quiz-info").textContent = `第${targetKaisu}回 国家試験 - ${targetSubject}`;
+  document.getElementById("quizInfo").textContent = `第${targetKaisu}回 - ${targetSubject}`;
 
-fetch("quizzes.json")
-  .then(res => res.json())
-  .then(data => {
-    // フィルタリング
-    if (targetSubject === "すべて") {
-      filteredQuestions = data.filter(q => String(q.kaisu) === targetKaisu);
+  fetch("quizzes.json")
+    .then(res => res.json())
+    .then(data => {
+      // フィルタリング（String変換で型不一致を防ぐ）
+      if (targetSubject === "すべて") {
+        questions = data.filter(q => String(q.kaisu).includes(targetKaisu));
+      } else {
+        questions = data.filter(q => String(q.kaisu).includes(targetKaisu) && q.subject === targetSubject);
+      }
+
+      if (questions.length === 0) {
+        alert("該当する問題が見つかりませんでした。");
+        location.href = "kaisu_select.html";
+        return;
+      }
+
+      // シャッフル
+      questions.sort(() => Math.random() - 0.5);
+      showQuestion();
+    });
+
+  function showQuestion() {
+    const q = questions[index];
+    document.getElementById("progress").textContent = `第${index + 1}問 / 全${questions.length}問`;
+    document.getElementById("questionText").textContent = q.question;
+    document.getElementById("judgeText").style.display = "none";
+    document.getElementById("explanation").style.display = "none";
+    document.getElementById("nextBtn").style.display = "none";
+
+    const optDiv = document.getElementById("options");
+    optDiv.innerHTML = "";
+
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = `${i + 1}. ${opt}`;
+      btn.onclick = () => checkAnswer(i + 1); // 1-indexedで渡す
+      optDiv.appendChild(btn);
+    });
+  }
+
+  function checkAnswer(selectedIdx) {
+    const q = questions[index];
+    const btns = document.querySelectorAll(".option");
+    btns.forEach(btn => btn.disabled = true);
+
+    const judge = document.getElementById("judgeText");
+    const expArea = document.getElementById("explanation");
+
+    // 正解・不正解の判定ロジック (JSONのanswerプロパティを使用)
+    if (selectedIdx === q.answer) {
+      correctCount++;
+      btns[selectedIdx - 1].classList.add("correct");
+      judge.textContent = "正解！";
+      judge.className = "correctText";
     } else {
-      filteredQuestions = data.filter(q => String(q.kaisu) === targetKaisu && q.subject === targetSubject);
+      btns[selectedIdx - 1].classList.add("wrong");
+      btns[q.answer - 1].classList.add("correct"); // 正解のボタンを赤く光らせる
+      judge.textContent = "不正解…";
+      judge.className = "wrongText";
     }
 
-    if (filteredQuestions.length === 0) {
-      alert("該当する問題が見つかりませんでした。");
-      location.href = "kaisu_select.html";
+    judge.style.display = "block";
+
+    // ✅ 解説から「・」を取り除き、すべての文をつなげて表示
+    const cleanExplanation = q.explanation.replace(/・/g, "");
+    expArea.innerHTML = `<strong>【解説】</strong><br>${cleanExplanation}`;
+    expArea.style.display = "block";
+
+    document.getElementById("nextBtn").style.display = "block";
+  }
+
+  function nextQuestion() {
+    index++;
+    if (index >= questions.length) {
+      showResult();
       return;
     }
-
-    // ランダムシャッフル
-    filteredQuestions.sort(() => Math.random() - 0.5);
-    displayQuestion();
-  })
-  .catch(err => {
-    console.error(err);
-    alert("データの読み込みに失敗しました。quizzes.jsonが正しいか確認してください。");
-  });
-
-function displayQuestion() {
-  const q = filteredQuestions[currentIndex];
-  document.getElementById("progress").textContent = `${currentIndex + 1} / ${filteredQuestions.length}`;
-  document.getElementById("question-text").textContent = q.question;
-  
-  const container = document.getElementById("options-container");
-  container.innerHTML = "";
-  const expArea = document.getElementById("explanation-area");
-  expArea.style.display = "none";
-  document.getElementById("next-btn").style.display = "none";
-
-  q.options.forEach((opt, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "option-btn";
-    btn.textContent = `${idx + 1}. ${opt}`;
-    btn.onclick = () => checkAnswer(idx + 1, q.answer, q.explanation);
-    container.appendChild(btn);
-  });
-}
-
-function checkAnswer(selected, correct, explanation) {
-  const btns = document.querySelectorAll(".option-btn");
-  btns.forEach((btn, idx) => {
-    btn.disabled = true;
-    if (idx + 1 === correct) {
-      btn.classList.add("correct"); // 正解を緑に
-    } else if (idx + 1 === selected) {
-      btn.classList.add("wrong"); // 選んだ不正解を赤に
-    }
-  });
-  
-  const expArea = document.getElementById("explanation-area");
-    
-  expArea.innerHTML = `<strong>【解説】</strong><br>${cleanExplanation}`;
-  expArea.style.display = "block";
-  document.getElementById("next-btn").style.display = "block";
-}
-
-function nextQuestion() {
-  currentIndex++;
-  if (currentIndex < filteredQuestions.length) {
-    displayQuestion();
-  } else {
-    alert("すべての問題を解き終えました！");
-    location.href = "mode.html";
+    showQuestion();
   }
-}
+
+  function showResult() {
+    document.getElementById("quizScreen").style.display = "none";
+    const resultScreen = document.getElementById("resultScreen");
+    resultScreen.style.display = "block";
+
+    const rate = Math.round((correctCount / questions.length) * 100);
+    document.getElementById("scoreText").textContent = 
+      `正解数：${correctCount} / ${questions.length}（正答率：${rate}%）`;
+  }
 </script>
+
 </body>
 </html>
