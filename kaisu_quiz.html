@@ -23,7 +23,7 @@
 <body>
 
 <div class="container" id="quizScreen">
-  <div class="header-info" id="quizInfo">読み込み中...</div>
+  <div class="header-info" id="quizInfo"></div>
   <p id="progress" style="text-align:center; font-weight:bold;"></p>
   <h2 id="questionText"></h2>
   <div id="options"></div>
@@ -35,8 +35,8 @@
 <div class="container" id="resultScreen" style="display:none;">
   <h2 style="text-align:center;">結果</h2>
   <p id="scoreText" style="text-align:center; font-size:1.1rem;"></p>
-  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">条件選択に戻る</button>
-  <button class="lightgray-btn" onclick="location.href='mode.html'">トップに戻る</button>
+  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">戻る</button>
+  <button class="lightgray-btn" onclick="location.href='mode.html'">トップへ</button>
 </div>
 
 <script>
@@ -57,22 +57,20 @@
   fetch("quizzes.json")
     .then(res => res.json())
     .then(data => {
-      // 1. まず該当する回の問題を抽出
-      let filtered = data.filter(q => String(q.kaisu).includes(targetKaisu));
+      // ✅ 修正ポイント：includes ではなく 完全一致 (===) で回数を判定
+      // JSON側のkaisuが数値か文字列か不明なため、両方をStringにして比較
+      let filtered = data.filter(q => String(q.kaisu) === String(targetKaisu));
 
-      // 2. 「すべて」以外なら科目を絞り込む
       if (targetSubject !== "すべて") {
         filtered = filtered.filter(q => q.subject === targetSubject);
       }
 
-      // 3. 【重要】重複排除（問題文 question をキーにしてユニークにする）
-      const uniqueMap = new Map();
-      filtered.forEach(q => {
-        if (!uniqueMap.has(q.question)) {
-          uniqueMap.set(q.question, q);
-        }
+      // 重複排除（念のため維持）
+      const seen = new Set();
+      filtered = filtered.filter(q => {
+        const key = q.question.substring(0, 30);
+        return seen.has(key) ? false : seen.add(key);
       });
-      filtered = Array.from(uniqueMap.values());
 
       if (filtered.length === 0) {
         alert("該当する問題が見つかりませんでした。");
@@ -80,14 +78,12 @@
         return;
       }
 
-      // 4. ソート処理
+      // ソート
       if (targetSubject === "すべて") {
         filtered.sort((a, b) => {
           let orderA = subjectOrder.indexOf(a.subject);
           let orderB = subjectOrder.indexOf(b.subject);
-          if (orderA === -1) orderA = 99;
-          if (orderB === -1) orderB = 99;
-          return orderA - orderB;
+          return (orderA === -1 ? 99 : orderA) - (orderB === -1 ? 99 : orderB);
         });
       } else {
         filtered.sort(() => Math.random() - 0.5);
@@ -95,11 +91,9 @@
 
       questions = filtered;
 
-      // 中断データの確認
       const savedData = localStorage.getItem(SAVE_KEY);
       if (savedData) {
         const resume = JSON.parse(savedData);
-        // 保存されたインデックスが現在の総数を超えていないかチェック
         if (resume.index < questions.length && confirm(`前回の続き（第${resume.index + 1}問目）から再開しますか？`)) {
           index = resume.index;
           correctCount = resume.correctCount;
@@ -107,10 +101,9 @@
           localStorage.removeItem(SAVE_KEY);
         }
       }
-      
       showQuestion();
     })
-    .catch(err => alert("データの取得に失敗しました。"));
+    .catch(err => alert("読み込み失敗"));
 
   function showQuestion() {
     const q = questions[index];
@@ -149,25 +142,18 @@
       judge.className = "correctText";
     } else {
       btns[selectedIdx].classList.add("wrong");
-      if (btns[correctIdx]) {
-        btns[correctIdx].classList.add("correct");
-      }
+      if (btns[correctIdx]) btns[correctIdx].classList.add("correct");
       judge.textContent = "不正解…";
       judge.className = "wrongText";
     }
 
     judge.style.display = "block";
-
     const rawExp = q.explanation || "解説はありません。";
     const formattedExp = rawExp.replace(/・/g, "");
     expArea.innerHTML = `<strong>【解説】</strong><br>${formattedExp}`;
     expArea.style.display = "block";
 
     document.getElementById("nextBtn").style.display = "block";
-    saveProgress();
-  }
-
-  function saveProgress() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ index: index, correctCount: correctCount }));
   }
 
