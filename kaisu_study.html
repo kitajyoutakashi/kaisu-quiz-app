@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>国試回数指定モード</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 380px;
+      box-sizing: border-box;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    h2 {
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+      color: #555;
+    }
+
+    select, button {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      text-align: center;
+      text-align-last: center;
+    }
+
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #1e7e34;
+    }
+
+    .back-btn {
+      background-color: #6c757d;
+    }
+
+    .back-btn:hover {
+      background-color: #545b62;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>国試回数指定モード</h2>
+
+  <label for="kaisu">実施回を選択</label>
+  <select id="kaisu">
+    <option value="">回数を選択</option>
+    </select>
+
+  <label for="subject">科目を選択</label>
+  <select id="subject">
+    
+    <option value="医療概論">医療概論</option>
+    <option value="公衆衛生学">公衆衛生学</option>
+    <option value="関係法規">関係法規</option>
+    <option value="解剖学">解剖学</option>
+    <option value="生理学">生理学</option>
+    <option value="病理学">病理学</option>
+    <option value="臨床医学総論">臨床医学総論</option>
+    <option value="臨床医学各論">臨床医学各論</option>
+    <option value="リハビリテーション医学">リハビリテーション医学</option>
+    <option value="東洋医学概論">東洋医学概論</option>
+    <option value="経絡経穴概論">経絡経穴概論</option>
+    <option value="東洋医学臨床論">東洋医学臨床論</option>
+    <option value="はり理論">はり理論</option>
+    <option value="きゅう理論">きゅう理論</option>
+    <option value="すべて">すべて（全科目）</option>
+  </select>
+
+  <button onclick="startKaisuQuiz()">学習を開始</button>
+  <button class="back-btn" onclick="location.href='mode.html'">戻る</button>
+</div>
+
+<script>
+  window.addEventListener("load", () => {
+    // ログインチェック
+    if (localStorage.getItem("loggedIn") !== "true") {
+      window.location.href = "login.html";
+      return;
+    }
+
+    // 1回から34回までの選択肢を生成
+    const kaisuSelect = document.getElementById("kaisu");
+    for (let i = 34; i >= 1; i--) {
+      const option = document.createElement("option");
+      option.value = String(i); // JSONの "kaisu": "9" 等に合わせる
+      option.textContent = `第${i}回`;
+      kaisuSelect.appendChild(option);
+    }
+  });
+
+  function startKaisuQuiz() {
+    const kaisu = document.getElementById("kaisu").value;
+    const subject = document.getElementById("subject").value;
+
+    if (!kaisu) {
+      alert("回数を選択してください。");
+      return;
+    }
+
+    // 既存の学習途中データをクリア
+    localStorage.removeItem("lastSubject");
+    localStorage.removeItem("lastChapter");
+    localStorage.removeItem("lastIndex");
+    localStorage.removeItem("lastCorrectCount");
+    localStorage.removeItem("questionOrder");
+
+    // モードとフィルタ条件を保存
+    localStorage.setItem("quiz_mode", "kaisu_spec");
+    localStorage.setItem("filter_kaisu", kaisu);
+    localStorage.setItem("filter_subject", subject);
+
+    // 出題画面（quiz.html）へ遷移
+    window.location.href = "quiz.html";
+  }
+</script>
+
+</body>
+</html>

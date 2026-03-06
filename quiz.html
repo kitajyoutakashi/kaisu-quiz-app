@@ -1,0 +1,188 @@
+<script>
+  let quizData = [];
+  let filteredQuestions = [];
+  let currentIndex = 0;
+  let correctCount = 0;
+
+  // モードの取得
+  const quizMode = localStorage.getItem("quiz_mode");
+
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  fetch("quizzes.json")
+    .then(res => res.json())
+    .then(data => {
+      quizData = data;
+
+      // ✅ フィルタリングロジックの分岐
+      if (quizMode === "kaisu_spec") {
+        const targetKaisu = localStorage.getItem("filter_kaisu");
+        const targetSubject = localStorage.getItem("filter_subject");
+
+        if (targetSubject === "すべて") {
+          // 回数のみ一致する全科目を抽出
+          filteredQuestions = quizData.filter(q => String(q.kaisu) === targetKaisu);
+        } else {
+          // 回数と科目の両方が一致するものを抽出
+          filteredQuestions = quizData.filter(q => 
+            String(q.kaisu) === targetKaisu && q.subject === targetSubject
+          );
+        }
+      } else {
+        // 従来の項目別学習モード
+        const sub = localStorage.getItem("subject");
+        const ch = localStorage.getItem("chapter");
+        if (!sub || !ch) {
+          alert("科目と項目が選択されていません。");
+          window.location.href = "study.html";
+          return;
+        }
+        filteredQuestions = quizData.filter(q => q.subject === sub && q.chapter === ch);
+      }
+
+      if (filteredQuestions.length === 0) {
+        alert("該当する問題がありません。");
+        window.location.href = "mode.html";
+        return;
+      }
+
+      // シャッフルと再開のロジック
+      let savedOrder = localStorage.getItem("questionOrder");
+      if (savedOrder) {
+        const order = JSON.parse(savedOrder);
+        filteredQuestions = order.map(i => filteredQuestions[i]);
+      } else {
+        const order = filteredQuestions.map((_, i) => i);
+        shuffle(order);
+        filteredQuestions = order.map(i => filteredQuestions[i]);
+        localStorage.setItem("questionOrder", JSON.stringify(order));
+      }
+
+      const savedIndex = localStorage.getItem("lastIndex");
+      const savedCorrect = localStorage.getItem("lastCorrectCount");
+      if (savedIndex !== null) currentIndex = Number(savedIndex);
+      if (savedCorrect !== null) correctCount = Number(savedCorrect);
+
+      showQuestion();
+    });
+
+  function showQuestion() {
+    const q = filteredQuestions[currentIndex];
+    document.getElementById("progressText").textContent =
+      `第${currentIndex + 1}問 / 全${filteredQuestions.length}問中`;
+
+    // 科目名も表示すると親切（特に全科目モード時）
+    document.getElementById("questionText").innerHTML = 
+      `<small style="color:#666; font-size:0.8rem;">[${q.subject}]</small><br>${q.question}`;
+
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement("button");
+      btn.className = "option";
+      btn.textContent = opt;
+      btn.onclick = () => checkAnswer(i);
+      optionsDiv.appendChild(btn);
+    });
+
+    document.getElementById("judgeText").style.display = "none";
+    document.getElementById("explanation").style.display = "none";
+    document.getElementById("nextBtn").style.display = "none";
+
+    // 進行状況の保存（項目別モード用と共通のキーを使用）
+    localStorage.setItem("lastIndex", currentIndex);
+    localStorage.setItem("lastCorrectCount", correctCount);
+  }
+
+  function checkAnswer(selectedIndex) {
+    const q = filteredQuestions[currentIndex];
+    const optionButtons = document.querySelectorAll(".option");
+    optionButtons.forEach(btn => btn.disabled = true);
+
+    const judge = document.getElementById("judgeText");
+    if (selectedIndex === q.correctIndex) {
+      correctCount++;
+      optionButtons[q.correctIndex].classList.add("correct");
+      judge.textContent = "正解！";
+      judge.className = "correctText fade-in";
+    } else {
+      optionButtons[q.correctIndex].classList.add("wrong");
+      judge.textContent = "不正解…";
+      judge.className = "wrongText fade-in";
+    }
+    judge.style.display = "block";
+
+    const exp = document.getElementById("explanation");
+    exp.innerHTML = q.explanation; // ✅ 全ての選択肢の解説がつながった状態で表示される
+    exp.classList.add("fade-in");
+    exp.style.display = "block";
+
+    localStorage.setItem("lastCorrectCount", correctCount);
+    document.getElementById("nextBtn").style.display = "block";
+  }
+
+  function nextQuestion() {
+    currentIndex++;
+    localStorage.setItem("lastIndex", currentIndex);
+    if (currentIndex >= filteredQuestions.length) {
+      showResult();
+      return;
+    }
+    showQuestion();
+  }
+
+  function showResult() {
+    document.getElementById("quizScreen").style.display = "none";
+    document.getElementById("resultScreen").style.display = "block";
+
+    const total = filteredQuestions.length;
+    const rate = Math.round((correctCount / total) * 100);
+    document.getElementById("scoreText").textContent =
+      `正解数：${correctCount} / ${total}（正答率：${rate}%）`;
+
+    // 満点演出
+    if (rate === 100) {
+      const characters = ["ekiden.jpg", "keeper.png", "baseball.png", "ushiro_harimijikai_gray_ikume_.png", "帽子なし野球ユニフォーム.png", "陸上イクメちゃん.png"];
+      const randomChar = characters[Math.floor(Math.random() * characters.length)];
+      const img = document.getElementById("perfectChar");
+      img.src = randomChar;
+      img.style.display = "block";
+      document.getElementById("perfectMessage").style.display = "block";
+    }
+
+    // 戻るボタンの遷移先を動的に変更
+    const backBtn = document.querySelector("#resultScreen button");
+    if (quizMode === "kaisu_spec") {
+      backBtn.textContent = "回数指定に戻る";
+      backBtn.onclick = () => { location.href = 'kaisu_study.html'; };
+    } else {
+      backBtn.textContent = "科目選択に戻る";
+      backBtn.onclick = () => { location.href = 'study.html'; };
+    }
+
+    // データのクリーンアップ
+    localStorage.removeItem("lastIndex");
+    localStorage.removeItem("lastCorrectCount");
+    localStorage.removeItem("questionOrder");
+
+    // 履歴保存（回数指定モードの時は別のキー、または保存スキップにする）
+    if (quizMode !== "kaisu_spec") {
+      const sub = localStorage.getItem("subject");
+      const ch = localStorage.getItem("chapter");
+      const keyBase = `${sub}_${ch}`;
+      const today = new Date();
+      const yyyymmdd = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+      localStorage.setItem(`lastDate_${keyBase}`, yyyymmdd);
+      localStorage.setItem(`lastRate_${keyBase}`, rate);
+      const prevCount = Number(localStorage.getItem(`lastCount_${keyBase}`) || 0);
+      localStorage.setItem(`lastCount_${keyBase}`, prevCount + 1);
+    }
+  }
+</script>

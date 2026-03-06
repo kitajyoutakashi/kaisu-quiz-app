@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>項目別学習モード</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 380px;
+      box-sizing: border-box;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    select, button {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      text-align: center;
+      text-align-last: center;
+    }
+
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1e7e34;
+    }
+
+    .back-btn {
+      background-color: #6c757d;
+    }
+
+    .back-btn:hover {
+      background-color: #545b62;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>項目別学習モード</h2>
+
+  <select id="subject">
+    <option value="">科目を選択</option>
+  </select>
+
+  <select id="chapter">
+    <option value="">項目を選択</option>
+  </select>
+
+  <button onclick="startQuiz()">学習を開始</button>
+  <button class="back-btn" onclick="location.href='mode.html'">戻る</button>
+</div>
+
+<script>
+  let quizData = [];
+
+  const subjectOrder = [
+    "医療概論","公衆衛生学","関係法規","解剖学","生理学","病理学",
+    "臨床医学総論","臨床医学各論","リハビリテーション医学",
+    "東洋医学概論","経絡経穴概論","東洋医学臨床論","はり理論","きゅう理論"
+  ];
+
+  window.addEventListener("load", () => {
+
+    if (localStorage.getItem("loggedIn") !== "true") {
+      window.location.href = "login.html";
+      return;
+    }
+
+    // 🔥 前回の続きがある場合の処理
+    const lastSubject = localStorage.getItem("lastSubject");
+    const lastChapter = localStorage.getItem("lastChapter");
+    const lastIndex = localStorage.getItem("lastIndex");
+
+    if (lastSubject && lastChapter && lastIndex !== null) {
+
+      const resume = confirm(
+        `前回の続きがあります。\n\n科目：${lastSubject}\n項目：${lastChapter}\n第${Number(lastIndex) + 1}問目から再開しますか？`
+      );
+
+      if (resume) {
+        localStorage.setItem("subject", lastSubject);
+        localStorage.setItem("chapter", lastChapter);
+        window.location.href = "quiz.html";
+        return;
+      } else {
+        // 🔥 キャンセル時：途中データを完全削除
+        localStorage.removeItem("lastSubject");
+        localStorage.removeItem("lastChapter");
+        localStorage.removeItem("lastIndex");
+        localStorage.removeItem("lastCorrectCount");
+        localStorage.removeItem("questionOrder");
+      }
+    }
+
+    fetch("quizzes.json")
+      .then(res => res.json())
+      .then(data => {
+        quizData = data;
+        populateSubjects();
+      });
+  });
+
+  function populateSubjects() {
+    const subjectSelect = document.getElementById("subject");
+
+    let subjects = [...new Set(quizData.map(q => q.subject))];
+
+    subjects.sort((a, b) => subjectOrder.indexOf(a) - subjectOrder.indexOf(b));
+
+    subjects.forEach(sub => {
+      const option = document.createElement("option");
+      option.value = sub;
+      option.textContent = sub;
+      subjectSelect.appendChild(option);
+    });
+
+    subjectSelect.addEventListener("change", populateChapters);
+  }
+
+  function populateChapters() {
+    const subject = document.getElementById("subject").value;
+    const chapterSelect = document.getElementById("chapter");
+
+    chapterSelect.innerHTML = "<option value=''>項目を選択</option>";
+
+    let chapters = [
+      ...new Set(
+        quizData.filter(q => q.subject === subject).map(q => q.chapter)
+      )
+    ];
+
+    chapters.sort((a, b) => {
+      const categoryA = a.split("・")[0];
+      const categoryB = b.split("・")[0];
+      if (categoryA < categoryB) return -1;
+      if (categoryA > categoryB) return 1;
+      return a.localeCompare(b, "ja");
+    });
+
+    // 🔥 プルダウンに履歴を表示
+    chapters.forEach(ch => {
+      const option = document.createElement("option");
+      option.value = ch;
+
+      const keyBase = `${subject}_${ch}`;
+      const date = localStorage.getItem(`lastDate_${keyBase}`);
+      const rate = localStorage.getItem(`lastRate_${keyBase}`);
+      const count = localStorage.getItem(`lastCount_${keyBase}`);
+
+      if (date && rate && count) {
+        option.textContent = `${ch}: ${date}, 回数${count}, 正答率${rate}%`;
+      } else {
+        option.textContent = `${ch}: 履歴なし`;
+      }
+
+      chapterSelect.appendChild(option);
+    });
+  }
+
+  function startQuiz() {
+    const subject = document.getElementById("subject").value;
+    const chapter = document.getElementById("chapter").value;
+
+    if (!subject || !chapter) {
+      alert("科目と項目を選択してください。");
+      return;
+    }
+
+    // 🔥 別の項目を開始する前に途中データを完全削除
+    localStorage.removeItem("lastSubject");
+    localStorage.removeItem("lastChapter");
+    localStorage.removeItem("lastIndex");
+    localStorage.removeItem("lastCorrectCount");
+    localStorage.removeItem("questionOrder");
+
+    localStorage.setItem("subject", subject);
+    localStorage.setItem("chapter", chapter);
+
+    window.location.href = "quiz.html";
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>モード選択</title>
+
+  <!-- ✅ ログインチェック -->
+  <script>
+    if (localStorage.getItem("loggedIn") !== "true") {
+      window.location.href = "login.html";
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 360px;
+      text-align: center;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .logout-btn {
+      background-color: #6c757d;
+    }
+
+    .logout-btn:hover {
+      background-color: #545b62;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>モードを選択</h2>
+
+    <button onclick="location.href='study.html'">
+      項目別学習モード
+    </button>
+
+    <!-- ✅ 修正済み：正しいファイル名に変更 -->
+    <button onclick="location.href='udetest.html'">
+      ウデ試しモード
+    </button>
+
+    <!-- 追加・回数・科目指定可能にしたい -->
+    <button onclick="location.href='kaisu_select.html'" style="background-color: #28a745;">
+  	国試回数指定モード
+    </button>
+
+
+    <button class="logout-btn" onclick="location.href='login.html'">
+      ログアウト
+    </button>
+  </div>
+</body>
+</html>

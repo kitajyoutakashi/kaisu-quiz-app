@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>国試回数指定モード</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; box-sizing: border-box; }
+    h2 { margin-bottom: 1.5rem; color: #333; }
+    label { display: block; text-align: left; margin-bottom: 0.5rem; font-weight: bold; color: #555; }
+    select { width: 100%; padding: 0.8rem; font-size: 1rem; margin-bottom: 1.5rem; border: 1px solid #ccc; border-radius: 6px; background-color: #fff; }
+    button { width: 100%; padding: 1rem; font-size: 1.2rem; margin-bottom: 1rem; border: none; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+    .start-btn { background-color: #28a745; color: white; }
+    .start-btn:hover { background-color: #218838; }
+    .back-btn { background-color: #6c757d; color: white; }
+    .back-btn:hover { background-color: #5a6268; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>国試回数指定</h2>
+    
+    <label for="kaisu-select">実施回を選択</label>
+    <select id="kaisu-select">
+      <option value="34">第34回</option>
+      <option value="33">第33回</option>
+      <option value="32">第32回</option>
+      <option value="31">第31回</option>
+      <option value="30">第30回</option>
+      <option value="29">第29回</option>
+      <option value="28">第28回</option>
+      <option value="27">第27回</option>
+      <option value="26">第26回</option>
+      <option value="25">第25回</option>
+      <option value="24">第24回</option>
+      <option value="23">第23回</option>
+      <option value="22">第22回</option>
+      <option value="21">第21回</option>
+      <option value="20">第20回</option>
+      <option value="19">第19回</option>
+      <option value="18">第18回</option>
+      <option value="17">第17回</option>
+      <option value="16">第16回</option>
+      <option value="15">第15回</option>
+      <option value="14">第14回</option>
+      <option value="13">第13回</option>
+      <option value="12">第12回</option>
+      <option value="11">第11回</option>
+      <option value="10">第10回</option>
+      <option value="9">第9回</option>
+      <option value="8">第8回</option>
+      <option value="7">第7回</option>
+      <option value="6">第6回</option>
+      <option value="5">第5回</option>
+      <option value="4">第4回</option>
+      <option value="3">第3回</option>
+      <option value="2">第2回</option>
+      <option value="1">第1回</option>
+    </select>
+
+    <label for="subject-select">科目を選択</label>
+    <select id="subject-select">
+      <option value="医療概論">医療概論</option>
+      <option value="公衆衛生学">公衆衛生学</option>
+      <option value="関係法規">関係法規</option>
+      <option value="解剖学">解剖学</option>
+      <option value="生理学">生理学</option>
+      <option value="病理学">病理学</option>
+      <option value="臨床医学総論">臨床医学総論</option>
+      <option value="臨床医学各論">臨床医学各論</option>
+      <option value="リハビリテーション医学">リハビリテーション医学</option>
+      <option value="東洋医学概論">東洋医学概論</option>
+      <option value="経絡経穴概論">経絡経穴概論</option>
+      <option value="東洋医学臨床論">東洋医学臨床論</option>
+      <option value="はり理論">はり理論</option>
+      <option value="きゅう理論">きゅう理論</option>
+    </select>
+
+    <button class="start-btn" onclick="startKaisuMode()">学習を開始する</button>
+    <button class="back-btn" onclick="location.href='mode.html'">戻る</button>
+  </div>
+
+  <script>
+    function startKaisuMode() {
+      const kaisu = document.getElementById("kaisu-select").value;
+      const subject = document.getElementById("subject-select").value;
+      
+      // 選択条件を保存
+      localStorage.setItem("filter_kaisu", kaisu);
+      localStorage.setItem("filter_subject", subject);
+      localStorage.setItem("quiz_mode", "kaisu_spec");
+      
+      // クイズ画面へ遷移
+      window.location.href = "study.html";
+    }
+  </script>
+</body>
+</html>
