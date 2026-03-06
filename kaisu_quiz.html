@@ -57,11 +57,22 @@
   fetch("quizzes.json")
     .then(res => res.json())
     .then(data => {
-      let filtered = data.filter(q => {
-        const matchKaisu = String(q.kaisu).includes(targetKaisu);
-        if (targetSubject === "すべて") return matchKaisu;
-        return matchKaisu && q.subject === targetSubject;
+      // 1. まず該当する回の問題を抽出
+      let filtered = data.filter(q => String(q.kaisu).includes(targetKaisu));
+
+      // 2. 「すべて」以外なら科目を絞り込む
+      if (targetSubject !== "すべて") {
+        filtered = filtered.filter(q => q.subject === targetSubject);
+      }
+
+      // 3. 【重要】重複排除（問題文 question をキーにしてユニークにする）
+      const uniqueMap = new Map();
+      filtered.forEach(q => {
+        if (!uniqueMap.has(q.question)) {
+          uniqueMap.set(q.question, q);
+        }
       });
+      filtered = Array.from(uniqueMap.values());
 
       if (filtered.length === 0) {
         alert("該当する問題が見つかりませんでした。");
@@ -69,7 +80,7 @@
         return;
       }
 
-      // ソート処理
+      // 4. ソート処理
       if (targetSubject === "すべて") {
         filtered.sort((a, b) => {
           let orderA = subjectOrder.indexOf(a.subject);
@@ -88,7 +99,8 @@
       const savedData = localStorage.getItem(SAVE_KEY);
       if (savedData) {
         const resume = JSON.parse(savedData);
-        if (confirm(`前回の続き（第${resume.index + 1}問目）から再開しますか？\n「キャンセル」で最初から開始します。`)) {
+        // 保存されたインデックスが現在の総数を超えていないかチェック
+        if (resume.index < questions.length && confirm(`前回の続き（第${resume.index + 1}問目）から再開しますか？`)) {
           index = resume.index;
           correctCount = resume.correctCount;
         } else {
@@ -119,9 +131,6 @@
       btn.onclick = () => checkAnswer(i);
       optDiv.appendChild(btn);
     });
-
-    // 進行状況を保存（問題を跨ぐタイミングで更新）
-    saveProgress();
   }
 
   function checkAnswer(selectedIdx) {
@@ -155,23 +164,16 @@
     expArea.style.display = "block";
 
     document.getElementById("nextBtn").style.display = "block";
-    
-    // 解いた直後にも保存（正解数などを更新するため）
     saveProgress();
   }
 
   function saveProgress() {
-    const progressData = {
-      index: index,
-      correctCount: correctCount
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(progressData));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ index: index, correctCount: correctCount }));
   }
 
   function nextQuestion() {
     index++;
     if (index >= questions.length) {
-      // 全問終了したら中断データを削除
       localStorage.removeItem(SAVE_KEY);
       showResult();
     } else {
