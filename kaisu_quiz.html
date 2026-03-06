@@ -46,20 +46,17 @@
 
   const targetKaisu = localStorage.getItem("targetKaisu");
   const targetSubject = localStorage.getItem("targetSubject");
+  const SAVE_KEY = `resume_kaisu_${targetKaisu}_${targetSubject}`;
 
-  // 出題順序の定義
   const subjectOrder = [
     "医療概論", "公衆衛生学", "関係法規", "解剖学", "生理学", "病理学", 
     "臨床医学総論", "臨床医学各論", "リハビリテーション医学", 
     "東洋医学概論", "経絡経穴概論", "東洋医学臨床論", "はり理論", "きゅう理論"
   ];
 
-  document.getElementById("quizInfo").textContent = `第${targetKaisu}回 - ${targetSubject}`;
-
   fetch("quizzes.json")
     .then(res => res.json())
     .then(data => {
-      // フィルタリング
       let filtered = data.filter(q => {
         const matchKaisu = String(q.kaisu).includes(targetKaisu);
         if (targetSubject === "すべて") return matchKaisu;
@@ -72,23 +69,33 @@
         return;
       }
 
-      // 並び替え処理
+      // ソート処理
       if (targetSubject === "すべて") {
-        // 科目のインデックス順にソート。同じ科目の場合は問題番号順（あれば）
         filtered.sort((a, b) => {
           let orderA = subjectOrder.indexOf(a.subject);
           let orderB = subjectOrder.indexOf(b.subject);
-          // 順序リストにない科目は最後に回す
           if (orderA === -1) orderA = 99;
           if (orderB === -1) orderB = 99;
           return orderA - orderB;
         });
       } else {
-        // 単一科目の場合はランダム
         filtered.sort(() => Math.random() - 0.5);
       }
 
       questions = filtered;
+
+      // 中断データの確認
+      const savedData = localStorage.getItem(SAVE_KEY);
+      if (savedData) {
+        const resume = JSON.parse(savedData);
+        if (confirm(`前回の続き（第${resume.index + 1}問目）から再開しますか？\n「キャンセル」で最初から開始します。`)) {
+          index = resume.index;
+          correctCount = resume.correctCount;
+        } else {
+          localStorage.removeItem(SAVE_KEY);
+        }
+      }
+      
       showQuestion();
     })
     .catch(err => alert("データの取得に失敗しました。"));
@@ -96,7 +103,6 @@
   function showQuestion() {
     const q = questions[index];
     document.getElementById("progress").textContent = `${index + 1} / ${questions.length}`;
-    // 科目名も表示して分かりやすくする
     document.getElementById("quizInfo").textContent = `第${targetKaisu}回 - ${q.subject}`;
     document.getElementById("questionText").textContent = q.question;
     
@@ -113,6 +119,9 @@
       btn.onclick = () => checkAnswer(i);
       optDiv.appendChild(btn);
     });
+
+    // 進行状況を保存（問題を跨ぐタイミングで更新）
+    saveProgress();
   }
 
   function checkAnswer(selectedIdx) {
@@ -146,11 +155,24 @@
     expArea.style.display = "block";
 
     document.getElementById("nextBtn").style.display = "block";
+    
+    // 解いた直後にも保存（正解数などを更新するため）
+    saveProgress();
+  }
+
+  function saveProgress() {
+    const progressData = {
+      index: index,
+      correctCount: correctCount
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(progressData));
   }
 
   function nextQuestion() {
     index++;
     if (index >= questions.length) {
+      // 全問終了したら中断データを削除
+      localStorage.removeItem(SAVE_KEY);
       showResult();
     } else {
       showQuestion();
