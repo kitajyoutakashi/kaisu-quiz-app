@@ -8,18 +8,14 @@
     body { font-family: sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
     .container { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     .header-info { font-size: 0.9rem; color: #666; margin-bottom: 0.5rem; text-align: center; }
-    #questionText { font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.5; font-weight: bold; }
+    #questionText { font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.5; font-weight: bold; white-space: pre-wrap; }
     .option { width: 100%; padding: 1rem; margin-bottom: 0.8rem; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1rem; }
-    
-    /* 正解＝赤、不正解＝青 */
     .correct { background: #dc3545 !important; }
     .wrong { background: #0275d8 !important; }
-
     #nextBtn { width: 100%; padding: 1rem; background: #6c757d; color: white; border: none; border-radius: 6px; display: none; cursor: pointer; margin-top: 1rem; font-weight: bold; }
     #judgeText { font-weight: bold; margin-bottom: 0.5rem; text-align: center; font-size: 1.2rem; }
     .correctText { color: #dc3545; }
     .wrongText { color: #0275d8; }
-    
     #explanation { display: none; background: #eee; padding: 1.2rem; border-radius: 6px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; border-left: 5px solid #ccc; }
     .lightgray-btn { background: #dcdcdc; color: #333; border: none; border-radius: 6px; padding: 1rem; width: 100%; margin-top: 1rem; cursor: pointer; }
   </style>
@@ -39,42 +35,69 @@
 <div class="container" id="resultScreen" style="display:none;">
   <h2 style="text-align:center;">結果</h2>
   <p id="scoreText" style="text-align:center; font-size:1.1rem;"></p>
-  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">戻る</button>
-  <button class="lightgray-btn" onclick="location.href='mode.html'">トップへ</button>
+  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">条件選択に戻る</button>
+  <button class="lightgray-btn" onclick="location.href='mode.html'">トップに戻る</button>
 </div>
 
 <script>
   let questions = [];
   let index = 0;
-  let correctCount = 0; // 変数名を固定
+  let correctCount = 0;
 
   const targetKaisu = localStorage.getItem("targetKaisu");
   const targetSubject = localStorage.getItem("targetSubject");
+
+  // 出題順序の定義
+  const subjectOrder = [
+    "医療概論", "公衆衛生学", "関係法規", "解剖学", "生理学", "病理学", 
+    "臨床医学総論", "臨床医学各論", "リハビリテーション医学", 
+    "東洋医学概論", "経絡経穴概論", "東洋医学臨床論", "はり理論", "きゅう理論"
+  ];
 
   document.getElementById("quizInfo").textContent = `第${targetKaisu}回 - ${targetSubject}`;
 
   fetch("quizzes.json")
     .then(res => res.json())
     .then(data => {
-      questions = data.filter(q => {
+      // フィルタリング
+      let filtered = data.filter(q => {
         const matchKaisu = String(q.kaisu).includes(targetKaisu);
         if (targetSubject === "すべて") return matchKaisu;
         return matchKaisu && q.subject === targetSubject;
       });
 
-      if (questions.length === 0) {
+      if (filtered.length === 0) {
         alert("該当する問題が見つかりませんでした。");
         location.href = "kaisu_select.html";
         return;
       }
-      questions.sort(() => Math.random() - 0.5);
+
+      // 並び替え処理
+      if (targetSubject === "すべて") {
+        // 科目のインデックス順にソート。同じ科目の場合は問題番号順（あれば）
+        filtered.sort((a, b) => {
+          let orderA = subjectOrder.indexOf(a.subject);
+          let orderB = subjectOrder.indexOf(b.subject);
+          // 順序リストにない科目は最後に回す
+          if (orderA === -1) orderA = 99;
+          if (orderB === -1) orderB = 99;
+          return orderA - orderB;
+        });
+      } else {
+        // 単一科目の場合はランダム
+        filtered.sort(() => Math.random() - 0.5);
+      }
+
+      questions = filtered;
       showQuestion();
     })
-    .catch(err => alert("読み込み失敗"));
+    .catch(err => alert("データの取得に失敗しました。"));
 
   function showQuestion() {
     const q = questions[index];
     document.getElementById("progress").textContent = `${index + 1} / ${questions.length}`;
+    // 科目名も表示して分かりやすくする
+    document.getElementById("quizInfo").textContent = `第${targetKaisu}回 - ${q.subject}`;
     document.getElementById("questionText").textContent = q.question;
     
     const optDiv = document.getElementById("options");
@@ -99,12 +122,10 @@
 
     const judge = document.getElementById("judgeText");
     const expArea = document.getElementById("explanation");
-
-    // JSONデータの correctIndex を取得。存在しない場合のフォールバックも用意
-    const correctIdx = q.correctIndex !== undefined ? Number(q.correctIndex) : 0;
+    const correctIdx = Number(q.correctIndex);
 
     if (selectedIdx === correctIdx) {
-      correctCount++; // ここでフリーズしないよう変数名を確認
+      correctCount++;
       btns[selectedIdx].classList.add("correct");
       judge.textContent = "正解！";
       judge.className = "correctText";
@@ -119,7 +140,6 @@
 
     judge.style.display = "block";
 
-    // 解説の整形と連結（指示通り「・」を除去）
     const rawExp = q.explanation || "解説はありません。";
     const formattedExp = rawExp.replace(/・/g, "");
     expArea.innerHTML = `<strong>【解説】</strong><br>${formattedExp}`;
@@ -140,7 +160,7 @@
   function showResult() {
     document.getElementById("quizScreen").style.display = "none";
     document.getElementById("resultScreen").style.display = "block";
-    const rate = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+    const rate = Math.round((correctCount / questions.length) * 100);
     document.getElementById("scoreText").textContent = `正解数：${correctCount} / ${questions.length}（正答率：${rate}%）`;
   }
 </script>
