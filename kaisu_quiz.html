@@ -31,12 +31,13 @@
     #questionText {
       font-size: 1.1rem;
       margin-bottom: 1.5rem;
+      line-height: 1.5;
     }
     .option {
       width: 100%;
       padding: 1rem;
       margin-bottom: 0.8rem;
-      background: #28a745; /* デフォルトは緑 */
+      background: #28a745; /* 基本は緑 */
       color: white;
       border: none;
       border-radius: 6px;
@@ -44,9 +45,9 @@
       text-align: left;
       font-size: 1rem;
     }
-    /* 正解＝赤 */
+    /* 正解＝赤（ウデ試しモード準拠） */
     .correct { background: #dc3545 !important; }
-    /* 不正解＝青 */
+    /* 不正解＝青（ウデ試しモード準拠） */
     .wrong { background: #0275d8 !important; }
 
     #nextBtn {
@@ -94,7 +95,7 @@
 <body>
 
 <div class="container" id="quizScreen">
-  <div class="header-info" id="quizInfo"></div>
+  <div class="header-info" id="quizInfo">読み込み中...</div>
   <p id="progress" style="text-align:center; font-weight:bold;"></p>
   <h2 id="questionText"></h2>
 
@@ -125,7 +126,7 @@
   fetch("quizzes.json")
     .then(res => res.json())
     .then(data => {
-      // フィルタリング（String変換で型不一致を防ぐ）
+      // フィルタリング
       if (targetSubject === "すべて") {
         questions = data.filter(q => String(q.kaisu).includes(targetKaisu));
       } else {
@@ -138,9 +139,13 @@
         return;
       }
 
-      // シャッフル
+      // ランダムに並び替え
       questions.sort(() => Math.random() - 0.5);
       showQuestion();
+    })
+    .catch(err => {
+      console.error(err);
+      alert("データの取得に失敗しました。");
     });
 
   function showQuestion() {
@@ -158,7 +163,8 @@
       const btn = document.createElement("button");
       btn.className = "option";
       btn.textContent = `${i + 1}. ${opt}`;
-      btn.onclick = () => checkAnswer(i + 1); // 1-indexedで渡す
+      // ボタンクリック時に正誤判定（1-indexed）
+      btn.onclick = () => checkAnswer(i + 1);
       optDiv.appendChild(btn);
     });
   }
@@ -171,24 +177,28 @@
     const judge = document.getElementById("judgeText");
     const expArea = document.getElementById("explanation");
 
-    // 正解・不正解の判定ロジック (JSONのanswerプロパティを使用)
-    if (selectedIdx === q.answer) {
+    // 正解番号を数値として取得（JSONのanswerが文字列の場合を考慮）
+    const correctAnswerNum = Number(q.answer);
+
+    if (selectedIdx === correctAnswerNum) {
       correctCount++;
-      btns[selectedIdx - 1].classList.add("correct");
+      btns[selectedIdx - 1].classList.add("correct"); // 正解＝赤
       judge.textContent = "正解！";
       judge.className = "correctText";
     } else {
-      btns[selectedIdx - 1].classList.add("wrong");
-      btns[q.answer - 1].classList.add("correct"); // 正解のボタンを赤く光らせる
+      btns[selectedIdx - 1].classList.add("wrong"); // 選んだ不正解＝青
+      if (btns[correctAnswerNum - 1]) {
+        btns[correctAnswerNum - 1].classList.add("correct"); // 正解の選択肢を表示
+      }
       judge.textContent = "不正解…";
       judge.className = "wrongText";
     }
 
     judge.style.display = "block";
 
-    // ✅ 解説から「・」を取り除き、すべての文をつなげて表示
-    const cleanExplanation = q.explanation.replace(/・/g, "");
-    expArea.innerHTML = `<strong>【解説】</strong><br>${cleanExplanation}`;
+    // ✅ 解説の整形： 「・」をすべて削除し、つなげて表示する
+    const formattedExp = q.explanation ? q.explanation.replace(/・/g, "") : "解説はありません。";
+    expArea.innerHTML = `<strong>【解説】</strong><br>${formattedExp}`;
     expArea.style.display = "block";
 
     document.getElementById("nextBtn").style.display = "block";
