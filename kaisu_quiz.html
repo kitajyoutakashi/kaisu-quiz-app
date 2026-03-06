@@ -37,7 +37,7 @@
       width: 100%;
       padding: 1rem;
       margin-bottom: 0.8rem;
-      background: #28a745; /* 基本は緑 */
+      background: #28a745; 
       color: white;
       border: none;
       border-radius: 6px;
@@ -45,9 +45,8 @@
       text-align: left;
       font-size: 1rem;
     }
-    /* 正解＝赤（ウデ試しモード準拠） */
+    /* ウデ試しモード準拠：正解＝赤、不正解＝青 */
     .correct { background: #dc3545 !important; }
-    /* 不正解＝青（ウデ試しモード準拠） */
     .wrong { background: #0275d8 !important; }
 
     #nextBtn {
@@ -139,7 +138,6 @@
         return;
       }
 
-      // ランダムに並び替え
       questions.sort(() => Math.random() - 0.5);
       showQuestion();
     })
@@ -163,8 +161,8 @@
       const btn = document.createElement("button");
       btn.className = "option";
       btn.textContent = `${i + 1}. ${opt}`;
-      // ボタンクリック時に正誤判定（1-indexed）
-      btn.onclick = () => checkAnswer(i + 1);
+      // 配列のインデックス(0, 1, 2, 3)をそのまま渡す
+      btn.onclick = () => checkAnswer(i);
       optDiv.appendChild(btn);
     });
   }
@@ -177,18 +175,18 @@
     const judge = document.getElementById("judgeText");
     const expArea = document.getElementById("explanation");
 
-    // 正解番号を数値として取得（JSONのanswerが文字列の場合を考慮）
-    const correctAnswerNum = Number(q.answer);
+    // 正解indexは0～3なので、そのまま使用する
+    const correctAnswerIndex = Number(q.answer);
 
-    if (selectedIdx === correctAnswerNum) {
+    if (selectedIdx === correctAnswerIndex) {
       correctCount++;
-      btns[selectedIdx - 1].classList.add("correct"); // 正解＝赤
+      btns[selectedIdx].classList.add("correct"); // 正解＝赤
       judge.textContent = "正解！";
       judge.className = "correctText";
     } else {
-      btns[selectedIdx - 1].classList.add("wrong"); // 選んだ不正解＝青
-      if (btns[correctAnswerNum - 1]) {
-        btns[correctAnswerNum - 1].classList.add("correct"); // 正解の選択肢を表示
+      btns[selectedIdx].classList.add("wrong"); // 選んだ不正解＝青
+      if (btns[correctAnswerIndex]) {
+        btns[correctAnswerIndex].classList.add("correct"); // 正解の場所を赤くする
       }
       judge.textContent = "不正解…";
       judge.className = "wrongText";
@@ -196,7 +194,7 @@
 
     judge.style.display = "block";
 
-    // ✅ 解説の整形： 「・」をすべて削除し、つなげて表示する
+    // 解説から「・」を取り除き、すべての選択肢の解説をつなげて表示する
     const formattedExp = q.explanation ? q.explanation.replace(/・/g, "") : "解説はありません。";
     expArea.innerHTML = `<strong>【解説】</strong><br>${formattedExp}`;
     expArea.style.display = "block";
