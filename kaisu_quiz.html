@@ -9,11 +9,11 @@
     .container { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     .header-info { font-size: 0.9rem; color: #666; margin-bottom: 0.5rem; text-align: center; }
     #questionText { font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.5; font-weight: bold; }
-    .option { width: 100%; padding: 1rem; margin-bottom: 0.8rem; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1rem; transition: background 0.2s; }
+    .option { width: 100%; padding: 1rem; margin-bottom: 0.8rem; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1rem; }
     
-    /* ウデ試しモード準拠の色設定 */
-    .correct { background: #dc3545 !important; } /* 正解＝赤 */
-    .wrong { background: #0275d8 !important; }   /* 不正解＝青 */
+    /* 正解＝赤、不正解＝青 */
+    .correct { background: #dc3545 !important; }
+    .wrong { background: #0275d8 !important; }
 
     #nextBtn { width: 100%; padding: 1rem; background: #6c757d; color: white; border: none; border-radius: 6px; display: none; cursor: pointer; margin-top: 1rem; font-weight: bold; }
     #judgeText { font-weight: bold; margin-bottom: 0.5rem; text-align: center; font-size: 1.2rem; }
@@ -39,24 +39,23 @@
 <div class="container" id="resultScreen" style="display:none;">
   <h2 style="text-align:center;">結果</h2>
   <p id="scoreText" style="text-align:center; font-size:1.1rem;"></p>
-  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">条件選択に戻る</button>
-  <button class="lightgray-btn" onclick="location.href='mode.html'">トップに戻る</button>
+  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">戻る</button>
+  <button class="lightgray-btn" onclick="location.href='mode.html'">トップへ</button>
 </div>
 
 <script>
   let questions = [];
   let index = 0;
-  let correctCount = 0;
+  let correctCount = 0; // 変数名を固定
 
   const targetKaisu = localStorage.getItem("targetKaisu");
   const targetSubject = localStorage.getItem("targetSubject");
 
-  document.getElementById("quizInfo").textContent = `第${targetKaisu}回 国家試験 - ${targetSubject}`;
+  document.getElementById("quizInfo").textContent = `第${targetKaisu}回 - ${targetSubject}`;
 
   fetch("quizzes.json")
     .then(res => res.json())
     .then(data => {
-      // フィルタリング
       questions = data.filter(q => {
         const matchKaisu = String(q.kaisu).includes(targetKaisu);
         if (targetSubject === "すべて") return matchKaisu;
@@ -68,15 +67,10 @@
         location.href = "kaisu_select.html";
         return;
       }
-
-      // シャッフル
       questions.sort(() => Math.random() - 0.5);
       showQuestion();
     })
-    .catch(err => {
-      console.error(err);
-      alert("データの読み込みに失敗しました。");
-    });
+    .catch(err => alert("読み込み失敗"));
 
   function showQuestion() {
     const q = questions[index];
@@ -93,7 +87,6 @@
       const btn = document.createElement("button");
       btn.className = "option";
       btn.textContent = `${i + 1}. ${opt}`;
-      // 配列のインデックス(0, 1, 2, 3)を渡す
       btn.onclick = () => checkAnswer(i);
       optDiv.appendChild(btn);
     });
@@ -107,18 +100,18 @@
     const judge = document.getElementById("judgeText");
     const expArea = document.getElementById("explanation");
 
-    // ✅ キー名を correctIndex に合わせて取得し数値化
-    const correctIdx = Number(q.correctIndex);
+    // JSONデータの correctIndex を取得。存在しない場合のフォールバックも用意
+    const correctIdx = q.correctIndex !== undefined ? Number(q.correctIndex) : 0;
 
     if (selectedIdx === correctIdx) {
-      correctCount++;
+      correctCount++; // ここでフリーズしないよう変数名を確認
       btns[selectedIdx].classList.add("correct");
       judge.textContent = "正解！";
       judge.className = "correctText";
     } else {
       btns[selectedIdx].classList.add("wrong");
       if (btns[correctIdx]) {
-        btns[correctIdx].classList.add("correct"); // 正解の選択肢（赤）
+        btns[correctIdx].classList.add("correct");
       }
       judge.textContent = "不正解…";
       judge.className = "wrongText";
@@ -126,7 +119,9 @@
 
     judge.style.display = "block";
 
-    
+    // 解説の整形と連結（指示通り「・」を除去）
+    const rawExp = q.explanation || "解説はありません。";
+    const formattedExp = rawExp.replace(/・/g, "");
     expArea.innerHTML = `<strong>【解説】</strong><br>${formattedExp}`;
     expArea.style.display = "block";
 
@@ -145,7 +140,7 @@
   function showResult() {
     document.getElementById("quizScreen").style.display = "none";
     document.getElementById("resultScreen").style.display = "block";
-    const rate = Math.round((correctCount / questions.length) * 100);
+    const rate = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
     document.getElementById("scoreText").textContent = `正解数：${correctCount} / ${questions.length}（正答率：${rate}%）`;
   }
 </script>
