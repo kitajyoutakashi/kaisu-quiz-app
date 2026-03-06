@@ -5,90 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>国試回数指定クイズ</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .container {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 420px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .header-info {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 0.5rem;
-      text-align: center;
-    }
-    #questionText {
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
-      line-height: 1.5;
-    }
-    .option {
-      width: 100%;
-      padding: 1rem;
-      margin-bottom: 0.8rem;
-      background: #28a745; 
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      text-align: left;
-      font-size: 1rem;
-    }
-    /* ウデ試しモード準拠：正解＝赤、不正解＝青 */
-    .correct { background: #dc3545 !important; }
-    .wrong { background: #0275d8 !important; }
+    body { font-family: sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .container { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .header-info { font-size: 0.9rem; color: #666; margin-bottom: 0.5rem; text-align: center; }
+    #questionText { font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.5; font-weight: bold; }
+    .option { width: 100%; padding: 1rem; margin-bottom: 0.8rem; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1rem; transition: background 0.2s; }
+    
+    /* ウデ試しモード準拠の色設定 */
+    .correct { background: #dc3545 !important; } /* 正解＝赤 */
+    .wrong { background: #0275d8 !important; }   /* 不正解＝青 */
 
-    #nextBtn {
-      width: 100%;
-      padding: 1rem;
-      background: #6c757d;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      display: none;
-      cursor: pointer;
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-    #judgeText {
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-      text-align: center;
-      font-size: 1.2rem;
-    }
+    #nextBtn { width: 100%; padding: 1rem; background: #6c757d; color: white; border: none; border-radius: 6px; display: none; cursor: pointer; margin-top: 1rem; font-weight: bold; }
+    #judgeText { font-weight: bold; margin-bottom: 0.5rem; text-align: center; font-size: 1.2rem; }
     .correctText { color: #dc3545; }
     .wrongText { color: #0275d8; }
-
-    #explanation {
-      display: none;
-      background: #eee;
-      padding: 1rem;
-      border-radius: 6px;
-      margin-top: 0.5rem;
-      font-size: 0.95rem;
-      line-height: 1.6;
-    }
-    .lightgray-btn {
-      background: #dcdcdc;
-      color: #333;
-      border: none;
-      border-radius: 6px;
-      padding: 1rem;
-      width: 100%;
-      margin-top: 1rem;
-      cursor: pointer;
-    }
+    
+    #explanation { display: none; background: #eee; padding: 1.2rem; border-radius: 6px; margin-top: 0.5rem; font-size: 0.95rem; line-height: 1.6; border-left: 5px solid #ccc; }
+    .lightgray-btn { background: #dcdcdc; color: #333; border: none; border-radius: 6px; padding: 1rem; width: 100%; margin-top: 1rem; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -97,18 +30,16 @@
   <div class="header-info" id="quizInfo">読み込み中...</div>
   <p id="progress" style="text-align:center; font-weight:bold;"></p>
   <h2 id="questionText"></h2>
-
   <div id="options"></div>
   <div id="judgeText" style="display:none;"></div>
   <div id="explanation"></div>
-
   <button id="nextBtn" onclick="nextQuestion()">次の問題へ</button>
 </div>
 
 <div class="container" id="resultScreen" style="display:none;">
   <h2 style="text-align:center;">結果</h2>
   <p id="scoreText" style="text-align:center; font-size:1.1rem;"></p>
-  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">回数指定に戻る</button>
+  <button class="lightgray-btn" onclick="location.href='kaisu_select.html'">条件選択に戻る</button>
   <button class="lightgray-btn" onclick="location.href='mode.html'">トップに戻る</button>
 </div>
 
@@ -120,17 +51,17 @@
   const targetKaisu = localStorage.getItem("targetKaisu");
   const targetSubject = localStorage.getItem("targetSubject");
 
-  document.getElementById("quizInfo").textContent = `第${targetKaisu}回 - ${targetSubject}`;
+  document.getElementById("quizInfo").textContent = `第${targetKaisu}回 国家試験 - ${targetSubject}`;
 
   fetch("quizzes.json")
     .then(res => res.json())
     .then(data => {
       // フィルタリング
-      if (targetSubject === "すべて") {
-        questions = data.filter(q => String(q.kaisu).includes(targetKaisu));
-      } else {
-        questions = data.filter(q => String(q.kaisu).includes(targetKaisu) && q.subject === targetSubject);
-      }
+      questions = data.filter(q => {
+        const matchKaisu = String(q.kaisu).includes(targetKaisu);
+        if (targetSubject === "すべて") return matchKaisu;
+        return matchKaisu && q.subject === targetSubject;
+      });
 
       if (questions.length === 0) {
         alert("該当する問題が見つかりませんでした。");
@@ -138,30 +69,31 @@
         return;
       }
 
+      // シャッフル
       questions.sort(() => Math.random() - 0.5);
       showQuestion();
     })
     .catch(err => {
       console.error(err);
-      alert("データの取得に失敗しました。");
+      alert("データの読み込みに失敗しました。");
     });
 
   function showQuestion() {
     const q = questions[index];
-    document.getElementById("progress").textContent = `第${index + 1}問 / 全${questions.length}問`;
+    document.getElementById("progress").textContent = `${index + 1} / ${questions.length}`;
     document.getElementById("questionText").textContent = q.question;
+    
+    const optDiv = document.getElementById("options");
+    optDiv.innerHTML = "";
     document.getElementById("judgeText").style.display = "none";
     document.getElementById("explanation").style.display = "none";
     document.getElementById("nextBtn").style.display = "none";
-
-    const optDiv = document.getElementById("options");
-    optDiv.innerHTML = "";
 
     q.options.forEach((opt, i) => {
       const btn = document.createElement("button");
       btn.className = "option";
       btn.textContent = `${i + 1}. ${opt}`;
-      // 配列のインデックス(0, 1, 2, 3)をそのまま渡す
+      // 配列のインデックス(0, 1, 2, 3)を渡す
       btn.onclick = () => checkAnswer(i);
       optDiv.appendChild(btn);
     });
@@ -175,18 +107,18 @@
     const judge = document.getElementById("judgeText");
     const expArea = document.getElementById("explanation");
 
-    // 正解indexは0～3なので、そのまま使用する
-    const correctAnswerIndex = Number(q.answer);
+    // ✅ キー名を correctIndex に合わせて取得し数値化
+    const correctIdx = Number(q.correctIndex);
 
-    if (selectedIdx === correctAnswerIndex) {
+    if (selectedIdx === correctIdx) {
       correctCount++;
-      btns[selectedIdx].classList.add("correct"); // 正解＝赤
+      btns[selectedIdx].classList.add("correct");
       judge.textContent = "正解！";
       judge.className = "correctText";
     } else {
-      btns[selectedIdx].classList.add("wrong"); // 選んだ不正解＝青
-      if (btns[correctAnswerIndex]) {
-        btns[correctAnswerIndex].classList.add("correct"); // 正解の場所を赤くする
+      btns[selectedIdx].classList.add("wrong");
+      if (btns[correctIdx]) {
+        btns[correctIdx].classList.add("correct"); // 正解の選択肢（赤）
       }
       judge.textContent = "不正解…";
       judge.className = "wrongText";
@@ -194,8 +126,7 @@
 
     judge.style.display = "block";
 
-    // 解説から「・」を取り除き、すべての選択肢の解説をつなげて表示する
-    const formattedExp = q.explanation ? q.explanation.replace(/・/g, "") : "解説はありません。";
+    
     expArea.innerHTML = `<strong>【解説】</strong><br>${formattedExp}`;
     expArea.style.display = "block";
 
@@ -206,21 +137,17 @@
     index++;
     if (index >= questions.length) {
       showResult();
-      return;
+    } else {
+      showQuestion();
     }
-    showQuestion();
   }
 
   function showResult() {
     document.getElementById("quizScreen").style.display = "none";
-    const resultScreen = document.getElementById("resultScreen");
-    resultScreen.style.display = "block";
-
+    document.getElementById("resultScreen").style.display = "block";
     const rate = Math.round((correctCount / questions.length) * 100);
-    document.getElementById("scoreText").textContent = 
-      `正解数：${correctCount} / ${questions.length}（正答率：${rate}%）`;
+    document.getElementById("scoreText").textContent = `正解数：${correctCount} / ${questions.length}（正答率：${rate}%）`;
   }
 </script>
-
 </body>
 </html>
