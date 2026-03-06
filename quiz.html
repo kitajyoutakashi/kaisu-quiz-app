@@ -1,11 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>問題</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 420px;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+
+    .option {
+      width: 100%;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .option:hover {
+      background-color: #1e7e34;
+    }
+
+    /* ✅ 正解（赤） */
+    .correct { background-color: #dc3545 !important; }
+
+    /* ✅ 不正解（正解を青で表示） */
+    .wrong { background-color: #0275d8 !important; }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #judgeText {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      display: none;
+    }
+
+    .correctText { color: #dc3545; } /* 正解 → 赤 */
+    .wrongText { color: #0275d8; }   /* 不正解 → 青 */
+
+    #explanation {
+      margin-top: 1rem;
+      padding: 1rem;
+      background-color: #f0f0f0;
+      border-radius: 6px;
+      display: none;
+    }
+
+    #nextBtn {
+      margin-top: 1rem;
+      width: 100%;
+      padding: 1rem;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: none;
+    }
+
+    #resultScreen {
+      display: none;
+      text-align: center;
+    }
+
+    #resultScreen button {
+      margin-top: 1rem;
+      width: 100%;
+      padding: 1rem;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #perfectMessage {
+      display: none;
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="quizScreen">
+  <p id="progressText" style="font-weight:bold; margin-bottom:0.5rem;"></p>
+  <h2 id="questionText">読み込み中...</h2>
+  <div id="options"></div>
+  <div id="judgeText"></div>
+  <div id="explanation"></div>
+  <button id="nextBtn" onclick="nextQuestion()">次の問題へ</button>
+</div>
+
+<div class="container" id="resultScreen">
+  <h2>結果</h2>
+  <p id="scoreText"></p>
+
+  <div id="perfectMessage">
+    <div style="display:flex; align-items:flex-start; gap:10px; justify-content:center;">
+      <img id="perfectChar" src="" alt="キャラ" style="width:80px; height:auto; display:none;">
+      <div style="
+        background:#fff; border:2px solid #333; border-radius:10px;
+        padding:10px; position:relative; max-width:200px; font-weight:bold;
+      ">
+        やったね！
+        <div style="
+          position:absolute; left:-10px; top:20px; width:0; height:0;
+          border-top:10px solid transparent;
+          border-bottom:10px solid transparent;
+          border-right:10px solid #333;
+        "></div>
+      </div>
+    </div>
+  </div>
+
+  <button onclick="location.href='study.html'">科目選択に戻る</button>
+</div>
+
 <script>
   let quizData = [];
   let filteredQuestions = [];
   let currentIndex = 0;
   let correctCount = 0;
 
-  // モードの取得
-  const quizMode = localStorage.getItem("quiz_mode");
+  const subject = localStorage.getItem("subject");
+  const chapter = localStorage.getItem("chapter");
+
+  if (!subject || !chapter) {
+    alert("科目と項目が選択されていません。");
+    window.location.href = "study.html";
+  }
 
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -20,40 +177,17 @@
     .then(data => {
       quizData = data;
 
-      // ✅ フィルタリングロジックの分岐
-      if (quizMode === "kaisu_spec") {
-        const targetKaisu = localStorage.getItem("filter_kaisu");
-        const targetSubject = localStorage.getItem("filter_subject");
-
-        if (targetSubject === "すべて") {
-          // 回数のみ一致する全科目を抽出
-          filteredQuestions = quizData.filter(q => String(q.kaisu) === targetKaisu);
-        } else {
-          // 回数と科目の両方が一致するものを抽出
-          filteredQuestions = quizData.filter(q => 
-            String(q.kaisu) === targetKaisu && q.subject === targetSubject
-          );
-        }
-      } else {
-        // 従来の項目別学習モード
-        const sub = localStorage.getItem("subject");
-        const ch = localStorage.getItem("chapter");
-        if (!sub || !ch) {
-          alert("科目と項目が選択されていません。");
-          window.location.href = "study.html";
-          return;
-        }
-        filteredQuestions = quizData.filter(q => q.subject === sub && q.chapter === ch);
-      }
+      filteredQuestions = quizData.filter(q =>
+        q.subject === subject && q.chapter === chapter
+      );
 
       if (filteredQuestions.length === 0) {
-        alert("該当する問題がありません。");
-        window.location.href = "mode.html";
-        return;
+        alert("この項目の問題がありません。");
+        window.location.href = "study.html";
       }
 
-      // シャッフルと再開のロジック
       let savedOrder = localStorage.getItem("questionOrder");
+
       if (savedOrder) {
         const order = JSON.parse(savedOrder);
         filteredQuestions = order.map(i => filteredQuestions[i]);
@@ -66,6 +200,7 @@
 
       const savedIndex = localStorage.getItem("lastIndex");
       const savedCorrect = localStorage.getItem("lastCorrectCount");
+
       if (savedIndex !== null) currentIndex = Number(savedIndex);
       if (savedCorrect !== null) correctCount = Number(savedCorrect);
 
@@ -74,13 +209,11 @@
 
   function showQuestion() {
     const q = filteredQuestions[currentIndex];
+
     document.getElementById("progressText").textContent =
       `第${currentIndex + 1}問 / 全${filteredQuestions.length}問中`;
 
-    // 科目名も表示すると親切（特に全科目モード時）
-    document.getElementById("questionText").innerHTML = 
-      `<small style="color:#666; font-size:0.8rem;">[${q.subject}]</small><br>${q.question}`;
-
+    document.getElementById("questionText").textContent = q.question;
     const optionsDiv = document.getElementById("options");
     optionsDiv.innerHTML = "";
 
@@ -96,45 +229,55 @@
     document.getElementById("explanation").style.display = "none";
     document.getElementById("nextBtn").style.display = "none";
 
-    // 進行状況の保存（項目別モード用と共通のキーを使用）
+    localStorage.setItem("lastSubject", subject);
+    localStorage.setItem("lastChapter", chapter);
     localStorage.setItem("lastIndex", currentIndex);
     localStorage.setItem("lastCorrectCount", correctCount);
   }
 
+  /* ✅ 正しい色仕様を反映した checkAnswer() */
   function checkAnswer(selectedIndex) {
     const q = filteredQuestions[currentIndex];
     const optionButtons = document.querySelectorAll(".option");
+
     optionButtons.forEach(btn => btn.disabled = true);
 
     const judge = document.getElementById("judgeText");
+
     if (selectedIndex === q.correctIndex) {
       correctCount++;
-      optionButtons[q.correctIndex].classList.add("correct");
+      optionButtons[q.correctIndex].classList.add("correct"); // ✅ 正解 → 赤
       judge.textContent = "正解！";
       judge.className = "correctText fade-in";
     } else {
-      optionButtons[q.correctIndex].classList.add("wrong");
+      optionButtons[q.correctIndex].classList.add("wrong"); // ✅ 不正解 → 正解を青
       judge.textContent = "不正解…";
       judge.className = "wrongText fade-in";
     }
+
     judge.style.display = "block";
 
     const exp = document.getElementById("explanation");
-    exp.innerHTML = q.explanation; // ✅ 全ての選択肢の解説がつながった状態で表示される
+    exp.innerHTML = q.explanation;
     exp.classList.add("fade-in");
     exp.style.display = "block";
 
     localStorage.setItem("lastCorrectCount", correctCount);
+
     document.getElementById("nextBtn").style.display = "block";
   }
 
   function nextQuestion() {
     currentIndex++;
+
     localStorage.setItem("lastIndex", currentIndex);
+    localStorage.setItem("lastCorrectCount", correctCount);
+
     if (currentIndex >= filteredQuestions.length) {
       showResult();
       return;
     }
+
     showQuestion();
   }
 
@@ -144,45 +287,49 @@
 
     const total = filteredQuestions.length;
     const rate = Math.round((correctCount / total) * 100);
+
     document.getElementById("scoreText").textContent =
       `正解数：${correctCount} / ${total}（正答率：${rate}%）`;
 
-    // 満点演出
     if (rate === 100) {
-      const characters = ["ekiden.jpg", "keeper.png", "baseball.png", "ushiro_harimijikai_gray_ikume_.png", "帽子なし野球ユニフォーム.png", "陸上イクメちゃん.png"];
+      const characters = [
+        "ekiden.jpg",
+        "keeper.png",
+        "baseball.png",
+        "ushiro_harimijikai_gray_ikume_.png",
+        "帽子なし野球ユニフォーム.png",
+        "陸上イクメちゃん.png"
+      ];
+
       const randomChar = characters[Math.floor(Math.random() * characters.length)];
       const img = document.getElementById("perfectChar");
       img.src = randomChar;
       img.style.display = "block";
+
       document.getElementById("perfectMessage").style.display = "block";
     }
 
-    // 戻るボタンの遷移先を動的に変更
-    const backBtn = document.querySelector("#resultScreen button");
-    if (quizMode === "kaisu_spec") {
-      backBtn.textContent = "回数指定に戻る";
-      backBtn.onclick = () => { location.href = 'kaisu_study.html'; };
-    } else {
-      backBtn.textContent = "科目選択に戻る";
-      backBtn.onclick = () => { location.href = 'study.html'; };
-    }
-
-    // データのクリーンアップ
+    localStorage.removeItem("lastSubject");
+    localStorage.removeItem("lastChapter");
     localStorage.removeItem("lastIndex");
     localStorage.removeItem("lastCorrectCount");
     localStorage.removeItem("questionOrder");
 
-    // 履歴保存（回数指定モードの時は別のキー、または保存スキップにする）
-    if (quizMode !== "kaisu_spec") {
-      const sub = localStorage.getItem("subject");
-      const ch = localStorage.getItem("chapter");
-      const keyBase = `${sub}_${ch}`;
-      const today = new Date();
-      const yyyymmdd = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-      localStorage.setItem(`lastDate_${keyBase}`, yyyymmdd);
-      localStorage.setItem(`lastRate_${keyBase}`, rate);
-      const prevCount = Number(localStorage.getItem(`lastCount_${keyBase}`) || 0);
-      localStorage.setItem(`lastCount_${keyBase}`, prevCount + 1);
-    }
+    const keyBase = `${subject}_${chapter}`;
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const yyyymmdd = `${y}${m}${d}`;
+
+    localStorage.setItem(`lastDate_${keyBase}`, yyyymmdd);
+    localStorage.setItem(`lastRate_${keyBase}`, rate);
+
+    const prevCount = Number(localStorage.getItem(`lastCount_${keyBase}`) || 0);
+    localStorage.setItem(`lastCount_${keyBase}`, prevCount + 1);
   }
 </script>
+
+</body>
+</html>
